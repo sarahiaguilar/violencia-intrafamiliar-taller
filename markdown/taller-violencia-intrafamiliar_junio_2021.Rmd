@@ -1,0 +1,706 @@
+---
+title: '_Taller_: Análisis y visualización de datos de violencia intrafamiliar contra
+  mujeres'
+output:
+  html_document:
+    df_print: paged
+---
+
+## por [Sarahí Aguilar](https://www.linkedin.com/in/sarahi-aguilar/)
+#### [Rladies CDMX](https://www.meetup.com/es/rladies-cdmx/)<br/>Junio 2021
+
+> **Descripción**<br/>En este taller, revisaremos un breve panorama de la violencia en el ámbito familiar contra la mujer en México, analizando datos y construyendo visualizaciones con cifras de: (1) la Encuesta Nacional sobre la Dinámica de las Relaciones en los Hogares (ENDIREH) 2016 y (2) los Reportes de incidencia delictiva al mes de mayo 2021 del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP). 
+
+> **Objetivo**<br/>El objetivo de este taller es que sus asistentes se familiaricen con las bases de datos y librerías de código en R empleadas en él, y con ello, puedan contar con las herramientas y la noción del flujo de preprocesamiento y análisis de datos para bases de datos similares.
+
+> **Librerías a utilizar** <br/>`data.table`, `ggplot2`, `mxmaps`, `scales`, `ggridges`, `forcats`, `lubridate`
+
+<br/>
+
+
+***
+***
+
+<br/>
+
+## Definición de violencia en el ámbito familiar 
+> _Se refiere a las agresiones o maltrato sufrido por las mujeres de 15 y más años de edad, en los últimos 12 meses, por parte de miembros de su familia o del esposo (como hermanos, cuñados, suegros, padrinos) sin considerar el maltrato de su pareja._
+
+> _El 8.1% de las mujeres experimentó violencia emocional en su familia en el último año._
+
+Fuente: [INEGI](https://www.inegi.org.mx/app/glosario/default.html?p=ENDIREH2016)
+
+<br/>
+
+***
+***
+
+
+<br/>
+
+## Trabajando con datos de la Encuesta Nacional sobre la Dinámica de las Relaciones en los Hogares (ENDIREH) 2016
+
+> _En el marco del Sistema Nacional de Información Estadística y Geográfica, el Instituto Nacional de Estadística y Geografía (INEGI), llevó a cabo en el último trimestre de 2016, la cuarta Encuesta Nacional sobre la Dinámica de las Relaciones en los Hogares 2016 (ENDIREH-2016).<br/><br/>Esta encuesta ofrece a la sociedad y al estado información referente a las **experiencias de violencia de tipo físico, económico, sexual, emocional y patrimonial**, que han enfrentado las **mujeres de 15 años y más** en los distintos ámbitos de su vida (de pareja, **familiar**, escolar, laboral y comunitario) y recopila información, sobre los agresores y los lugares donde ocurrieron las agresiones._
+
+Fuente: [INEGI](https://www.inegi.org.mx/programas/endireh/2016/#Documentacion)
+
+<br/>
+
+### Descarga
+
+1. Entrar a la [página del INEGI](https://www.inegi.org.mx/default.html). > Dar click en el módulo de _Datos_. > Dar click en el submódulo de _Programas_. > Dar click en el botón de _Encuestas en Hogares_. > Desplegar las opciones de _Regulares_. > Desplegar las opciones de _Encuesta Nacional sobre la Dinámica de las Relaciones en los Hogares (ENDIREH)_. > Dar click en el botón de _2016_.
+2. Una vez en la [sección de la ENDIREH 2016](https://www.inegi.org.mx/programas/endireh/2016/), dar click en el módulo de _Datos abiertos_, dar click en el _botón para descargar todos los archivos en una carpeta zip_. 
+3. Descomprimir la carpeta de datos descargada. 
+
+**Recomendación**: Explorar la estructura de la carpeta de datos descargada, y consultar el contenido del módulo de _Documentación_, particularmente los cuestionarios en su _SECCIÓN X. ÁMBITO FAMILIAR_.
+
+<br/>
+
+### Carga de datos a entorno de R
+
+(Paso previo recomendado:) [Crear un nuevo proyecto de RStudio](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects), crear una carpeta de "datos" dentro de la carpeta del proyecto y reubicar la carpeta de datos descargada dentro de esta nueva carpeta de "datos".
+
+* Instalar/cargar librerías
+```{r message=FALSE, warning=FALSE}
+# Descomentar línea siguiente para instalar todos los paquetes necesarios
+# install.packages("data.table", "ggplot2", "mxmaps", "scales") 
+library(data.table, ggplot2, mxmaps, ggridges, forcats, lubridate, forecast)
+```
+
+**Datos de la Sección X. Ámbito Familiar.**
+
+* Crear nueva variable con ruta a carpeta con datos 
+```{r}
+path_sec_x <- "../datos/conjunto_de_datos_endireh_2016_csv/conjunto_de_datos_tb_sec_x_endireh_2016"
+```
+
+* Cargar diccionario de datos (útil para consulta) 
+```{r}
+dict_sec_x <- fread(file.path(path_sec_x, "diccionario_de_datos/diccionario_de_datos_tb_sec_x_endireh_2016.csv"), encoding = "UTF-8")
+
+head(dict_sec_x)
+```
+
+* Cargar conjunto de datos
+```{r}
+dt_sec_x <- fread(file.path(path_sec_x, "conjunto_de_datos/conjunto_de_datos_tb_sec_x_endireh_2016.csv"), encoding = "UTF-8")
+
+head(dt_sec_x)
+```
+
+<br/>
+
+**Datos demográficos generales de la encuesta**
+
+* Crear nueva variable con ruta a carpeta con datos 
+```{r}
+path_tsdem <- "../datos/conjunto_de_datos_endireh_2016_csv/conjunto_de_datos_tsdem_endireh_2016"
+```
+
+* Cargar diccionario de datos (útil para consulta)
+
+```{r}
+tsdem_dict <- fread(file.path(path_tsdem, "diccionario_de_datos/diccionario_de_datos_tsdem_endireh_2016.csv"), encoding = "UTF-8")
+
+head(tsdem_dict)
+```
+
+* Cargar conjunto de datos
+
+```{r}
+dt_tsdem <- fread(file.path(path_tsdem, "conjunto_de_datos/conjunto_de_datos_tsdem_endireh_2016.csv"), encoding = "UTF-8")
+
+head(dt_tsdem)
+```
+
+<br/>
+
+### Seleccionar y reformatear columnas relevantes
+
+**Datos de la Sección X. Ámbito Familiar.**
+
+* Seleccionar columnas de Identificador de la mujer, Clave de entidad federativa, Factor de expansión de las mujeres elegidas y todas las columnas con respuestas de la sección X
+
+```{r message=FALSE, warning=FALSE}
+# Guardar todos los nombres de columna
+all_coln <- names(dt_sec_x)
+
+# Guardar nombres de columna con las respuestas de la sección X
+sec_x_coln <- all_coln[grepl("p10_", all_coln, ignore.case = T)]
+
+# Guardar nombres de columna relevantes
+rel_coln <- c("ID_MUJ", "CVE_ENT", "FAC_MUJ", sec_x_coln)
+
+# Seleccionar columnas relevantes del conjunto de datos
+dt_sec_x <- dt_sec_x[, rel_coln, with = F]
+
+```
+
+<br/>
+
+* Reformatear datos de columnas relevantes según su tipo de dato
+```{r message=FALSE, warning=FALSE}
+char_coln <- c("ID_MUJ", "CVE_ENT")
+dt_sec_x[, char_coln] <- dt_sec_x[, lapply(.SD, function(c) gsub("[\r]", "", c)), .SDcols = char_coln]
+
+num_coln <- c("FAC_MUJ", sec_x_coln)
+dt_sec_x[, num_coln] <- dt_sec_x[, lapply(.SD, as.numeric), .SDcols = num_coln]
+```
+
+```{r}
+head(dt_sec_x)
+```
+
+<br/>
+
+**Datos demográficos generales de la encuesta**
+
+* Seleccionar columnas de Identificador de la mujer y Edad
+
+```{r}
+dt_tsdem <- dt_tsdem[, c("ID_MUJ", "EDAD"), with = F]
+```
+
+<br/>
+
+* Reformatear datos de columnas relevantes según su tipo de dato
+```{r}
+dt_tsdem[, ID_MUJ := gsub("[\r]", "", ID_MUJ)]
+dt_tsdem[, EDAD := as.numeric(EDAD)]
+```
+
+```{r}
+head(dt_tsdem)
+```
+
+<br/>
+
+***
+
+<br/>
+
+### **Análisis de prevalencia de violencia familiar por entidad federativa**
+
+Para este análisis emplearemos las repsuestas a la pregunta 1 de la sección X.
+
+* Crear tabla con total de mujeres por entidad
+```{r}
+dt_prev_e <- dt_sec_x[, .(n_poblacion = sum(FAC_MUJ)), by = CVE_ENT] 
+
+head(dt_prev_e, n = 32)
+```
+
+<br/>
+
+* Guardar nombres de columna con las respuestas de la pregunta 1
+```{r}
+p1_coln <- all_coln[grepl("p10_1_", all_coln, ignore.case = T)]
+
+print(p1_coln)
+```
+<br/>
+
+* Crear conjunto de datos con respuestas de la pregunta 1
+```{r}
+dt_p1 <- dt_sec_x[, c("ID_MUJ", "CVE_ENT", "FAC_MUJ", p1_coln), with = F]
+```
+
+<br/>
+
+* Crear nueva variable que señala si la mujer fue violentada al menos 1 vez de alguna forma
+```{r}
+dt_p1[, fue_violentada := apply(dt_p1, 1, function(row) any(row %in% c(1, 2, 3)))]
+
+head(dt_p1)
+```
+
+<br/>
+
+* Crear tabla con total de mujeres violentadas al menos 1 vez de alguna forma por entidad
+```{r}
+violentadas_e <- dt_p1[fue_violentada == T, .(n_violentadas = sum(FAC_MUJ)), by = CVE_ENT]
+```
+
+<br/>
+
+* Unir con tabla con total de mujeres por entidad
+```{r}
+dt_prev_e <- merge(dt_prev_e, violentadas_e, by = "CVE_ENT")
+```
+
+<br/>
+
+* Crear nueva variable de prevalencia de violencia
+```{r}
+dt_prev_e[, prevalencia_general := n_violentadas/n_poblacion]
+```
+
+```{r}
+head(dt_prev_e, n = 32)
+```
+
+<br/>
+
+**🔵 Visualización 🔵**
+
+* Cargar datos necesarios del paquete ``mxmaps`` y unir con tabla con datos de prevalencia de violencia por entidad 
+```{r}
+data("df_mxstate")
+
+dt_map <- merge(df_mxstate, 
+                dt_prev_e[, .(CVE_ENT, prevalencia_general)], 
+                by.x = "region", 
+                by.y = "CVE_ENT", 
+                all.x = TRUE)
+
+setnames(dt_map, old = "prevalencia_general", new = "value") # Necesaria para visualización automática
+```
+
+```{r}
+head(dt_map, n = 32)
+```
+<br/> 
+
+* Gener visualización
+```{r}
+mxhexbin_choropleth(dt_map, 
+                    num_colors = 1,
+                    label_size = 3,
+                    title = "Porcentaje de mujeres de 15 años y más víctimas de violencia \nen el ámbito familiar en el último año por entidad federativa\n
+Fuente de datos: ENDIREH 2016") +
+  scale_fill_gradient(
+    low = "#faeaedff",
+    high = "#912236ff",
+    guide = "colourbar",
+    labels = percent_format(accuracy = 1L)
+  )
+```
+
+<br/>
+
+***
+
+<br/>
+
+### **Análisis de prevalencia de violencia familiar por tipo de violencia**
+
+Para este análisis emplearemos las repsuestas a la pregunta 1 de la sección X.
+
+#### **Tipos y subtipos de violencia**
+
+> _**Violencia emocional**
+<br/> - La han ofendido o humillado por el hecho de ser mujer (la hicieron sentir menos o mal)
+<br/> - La han ignorado o no la han tomado en cuenta por ser mujer
+<br/> - Le han roto o escondido algún objeto personal
+<br/> - La han amenazado con hacerle daño a usted o alguien que a usted le importa
+<br/> - La han corrido de su casa o amenazado con correrla
+<br/> - La han encerrado o impedido salir de su casa
+<br/>
+<br/>**Violencia económica o patrimonial**
+<br/> - Le han impedido o prohibido estudiar o trabajar
+<br/> - La han obligado a poner a nombre de otra persona alguna propiedad de usted o le han quitado o robado papeles de alguna propiedad
+<br/> - Le han quitado su dinero o lo han usado sin su consentimiento
+<br/> - Le han quitado bienes o propiedades de usted
+<br/>
+<br/>**Violencia física**
+<br/> - La han pellizcado, jalado el cabello, empujado, jaloneado, abofeteado o aventado algún objeto
+<br/> - La han atacado o agredido con un cuchillo, navaja o arma de fuego
+<br/> - La han pateado o golpeado con el puño
+<br/>
+<br/>**Violencia sexual**
+<br/> - Alguna persona le mostró sus partes íntimas o se las manoseó enfrente de usted
+<br/> - La han obligado a mirar escenas o actos sexuales o pornográficos (fotos, revistas, vídeos o películas pornográficas)
+<br/> - La han manoseado, tocado, besado o se le han arrimado, recargado o encimado sin su consentimiento
+<br/> - Han tratado de obligarla a tener relaciones sexuales en contra de su voluntad
+<br/> - La han obligado a tener relaciones sexuales en contra de su voluntad_
+
+Fuente: [INEGI](https://www.inegi.org.mx/app/glosario/default.html?p=ENDIREH2016)
+
+<br/>
+
+**Datos de violencia emocional**
+
+```{r}
+# Crear nueva variable que señala si la mujer fue violentada al menos 1 vez emocionalmente
+p1_emoc_coln <- paste0("P10_1_", c(1, 6, 7, 12, 14, 17))
+dt_p1[, fue_violentada_emoc := apply(dt_p1[, p1_emoc_coln, with = F], 1, function(row) any(row %in% c(1, 2, 3)))]
+
+# Crear tabla con total de mujeres violentadas al menos 1 vez emocionalmente por entidad
+violentadas_emoc_e <- dt_p1[fue_violentada_emoc == T, .(n_violentadas_emoc = sum(FAC_MUJ)), by = CVE_ENT]
+
+# Unir con tabla con datos por entidad
+dt_prev_e <- merge(dt_prev_e, violentadas_emoc_e, by = "CVE_ENT")
+
+# Crear nueva variable de prevalencia de violencia emocional
+dt_prev_e[, prevalencia_emocional := n_violentadas_emoc/n_poblacion]
+```
+
+```{r}
+head(dt_prev_e, n = 32)
+```
+(Nótese que se continua trabajando sobre la misma tabla a nivel entidad.)
+
+<br/>
+
+**Datos de violencia económica o patrimonial**
+
+```{r}
+# Crear nueva variable que señala si la mujer fue violentada al menos 1 vez de forma económica o patrimonial
+p1_econ_coln <- paste0("P10_1_", c(8, 9, 15, 16))
+dt_p1[, fue_violentada_econ := apply(dt_p1[, p1_econ_coln, with = F], 1, function(row) any(row %in% c(1, 2, 3)))]
+
+# Crear tabla con total de mujeres violentadas al menos 1 vez de al menos 1 vez de forma económica o patrimonial por entidad
+violentadas_econ_e <- dt_p1[fue_violentada_econ == T, .(n_violentadas_econ = sum(FAC_MUJ)), by = CVE_ENT]
+
+# Unir con tabla con datos por entidad
+dt_prev_e <- merge(dt_prev_e, violentadas_econ_e, by = "CVE_ENT")
+
+# Crear nueva variable de prevalencia de violencia económica o patrimonial
+dt_prev_e[, prevalencia_economica := n_violentadas_econ/n_poblacion]
+```
+
+```{r}
+head(dt_prev_e, n = 32)
+```
+<br/>
+
+**Datos de violencia física**
+
+```{r}
+# Crear nueva variable que señala si la mujer fue violentada al menos 1 vez de forma física
+p1_fisi_coln <- paste0("P10_1_", c(5, 10, 11))
+dt_p1[, fue_violentada_fisi := apply(dt_p1[, p1_fisi_coln, with = F], 1, function(row) any(row %in% c(1, 2, 3)))]
+
+# Crear tabla con total de mujeres violentadas al menos 1 vez de al menos 1 vez de forma física por entidad
+violentadas_fisi_e <- dt_p1[fue_violentada_fisi == T, .(n_violentadas_fisi = sum(FAC_MUJ)), by = CVE_ENT]
+
+# Unir con tabla con datos por entidad
+dt_prev_e <- merge(dt_prev_e, violentadas_fisi_e, by = "CVE_ENT")
+
+# Crear nueva variable de prevalencia de violencia física
+dt_prev_e[, prevalencia_fisica := n_violentadas_fisi/n_poblacion]
+```
+
+```{r}
+head(dt_prev_e, n = 32)
+```
+
+<br/>
+
+**Datos de violencia sexual**
+
+```{r}
+# Crear nueva variable que señala si la mujer fue violentada al menos 1 vez de forma sexual
+p1_sexu_coln <- paste0("P10_1_", c(2, 3, 4, 13, 18))
+dt_p1[, fue_violentada_sexu := apply(dt_p1[, p1_sexu_coln, with = F], 1, function(row) any(row %in% c(1, 2, 3)))]
+
+# Crear tabla con total de mujeres violentadas al menos 1 vez de al menos 1 vez de forma sexual por entidad
+violentadas_sexu_e <- dt_p1[fue_violentada_sexu == T, .(n_violentadas_sexu = sum(FAC_MUJ)), by = CVE_ENT]
+
+# Unir con tabla con datos por entidad
+dt_prev_e <- merge(dt_prev_e, violentadas_sexu_e, by = "CVE_ENT")
+
+# Crear nueva variable de prevalencia de violencia sexual
+dt_prev_e[, prevalencia_sexual := n_violentadas_sexu/n_poblacion]
+```
+
+```{r}
+head(dt_prev_e, n = 32)
+```
+
+<br/>
+
+* Exportar tabla completa de prevalencia de violencia familiar por entidad y tipo de violencia
+
+```{r}
+write.csv(dt_prev_e, "../datos/dt_prev_e.csv")
+```
+
+<br/>
+
+* Crear tabla de prevalencia de violencia familiar por tipo de violencia a nivel nacional
+```{r}
+dt_prev_mx <- data.table(dt_prev_e[, .(prevalencia_emoc = sum(n_violentadas_emoc)/sum(n_violentadas),
+                                       prevalencia_econ = sum(n_violentadas_econ)/sum(n_violentadas),
+                                       prevalencia_fisi = sum(n_violentadas_fisi)/sum(n_violentadas),
+                                       prevalencia_sexu = sum(n_violentadas_sexu)/sum(n_violentadas))])
+```
+
+<br/>
+
+* Dar formato largo
+```{r message=FALSE, warning=FALSE}
+dt_prev_mx_melted <- melt(dt_prev_mx,
+                          variable.name = "tipo_violencia",
+                          value.name = "prevalencia")
+
+head(dt_prev_mx_melted)
+```
+
+<br/>
+
+**🔵 Visualización 🔵**
+
+* Generar visualización
+
+```{r message=FALSE, warning=FALSE}
+ggplot(dt_prev_mx_melted, 
+       aes(x = reorder(tipo_violencia, -prevalencia), 
+           y = prevalencia, 
+           label = scales::percent(prevalencia, accuracy = 1L))) + 
+  geom_bar(stat = "identity", width = 0.5, fill = "#912236ff") + 
+  geom_text(color = "white",  size = 4, position = position_stack(vjust = .55)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L)) +
+  labs(title = "Prevalencia de tipo de violencia entre las mujeres de 15 años y más \nvíctimas de violencia en el ámbito familiar en el último año",
+       x = "Tipo de violencia", 
+       y = "Prevalencia",
+       caption = "Fuente de datos: ENDIREH 2016") +
+  scale_x_discrete(labels = c("prevalencia_emoc" = "Emocional", 
+                              "prevalencia_econ" = "Económica o patrimonial", 
+                              "prevalencia_fisi" = "Física",
+                              "prevalencia_sexu" = "Sexual")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 11.5))
+```
+
+<br/>
+
+***
+
+<br/>
+
+### **Análisis de distribución de edades por tipo de violencia**
+
+Para este análisis emplearemos las repsuestas a la pregunta 1 de la sección X.
+
+* Unir conjunto de datos con respuestas de la pregunta 1 con conjunto de datos de demográficos generales de la encuesta
+
+```{r}
+dt_p1_ <- merge(dt_p1, dt_tsdem, by = "ID_MUJ", all.x = T)
+```
+
+<br/>
+
+* Dar formato largo
+
+```{r}
+dt_p1_melted <- melt(dt_p1_[, c("ID_MUJ", "FAC_MUJ", "EDAD",
+                         "fue_violentada_emoc", 
+                         "fue_violentada_econ",
+                         "fue_violentada_fisi",
+                         "fue_violentada_sexu")], 
+                  id = c("ID_MUJ", "FAC_MUJ", "EDAD"),
+                  variable.name = "tipo_violencia")
+
+head(dt_p1_melted)
+```
+
+<br/>
+
+* Filtrar casos de violencia
+
+```{r}
+dt_p1_melted <- dt_p1_melted[value == T, ]
+```
+
+<br/>
+
+* Exportar tabla completa de casos de violencia con edad y tipo de violencia
+
+```{r}
+write.csv(dt_p1_melted, "../datos/dt_casos_violencia_con_edad_y_tipo.csv")
+```
+
+<br/>
+
+**🔵 Visualización 🔵**
+
+* Generar visualización
+
+```{r}
+ggplot(dt_p1_melted, aes(x = EDAD, y = fct_reorder(tipo_violencia, EDAD))) +
+  geom_density_ridges(scale = 2, 
+                      color = "#912236ff",
+                      fill = "#912236ff",
+                      alpha = 0.5,
+                      stat = "density",
+                      aes(height = ..density.., 
+                          weight = FAC_MUJ)) +
+  scale_y_discrete(labels=c("fue_violentada_emoc" = "Emocional", 
+                            "fue_violentada_econ" = "Económica o patrimonial", 
+                            "fue_violentada_fisi" = "Física",
+                            "fue_violentada_sexu" = "Sexual")) +
+  labs(title = "Distribución de edades por tipo de violencia entre las mujeres \nde 15 años y más víctimas de violencia en el ámbito familiar \nen el último año",
+       x = "Edad", 
+       y = "Tipo de violencia",
+       caption = "Fuente de datos: ENDIREH 2016") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 11.5))
+```
+
+<br/>
+
+***
+***
+
+
+<br/>
+
+## Trabajando con datos de los Reportes de incidencia delictiva al mes de mayo 2021 del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP)
+
+
+### Descarga
+
+1. Entrar a la [página de Datos Abiertos de Incidencia Delictiva](https://www.gob.mx/sesnsp/acciones-y-programas/datos-abiertos-de-incidencia-delictiva). > Dar click en el botón de Cifras de Incidencia Delictiva Estatal, 2015 - [último mes] [año del último mes].
+2. Se abrirá una previsualización del archivo (alojado el Google Drive). Dar click en el botón de descarga.
+3. Para poder calcular tasas de incidencia, se utilizaron las proyecciones de población a mitad de año del Consejo Nacional de Población. (Conjunto de datos disponible en este repositorio.)
+
+
+**Recomendación**: Explorar la estructura del archivo descargado, y consultar los [Diccionarios de datos de reportes de incidencia delictiva](https://drive.google.com/file/d/1rfvgcAcEzLR1Q44wwjZhjBvBFjtGSmX3/view).
+
+<br/>
+
+### Carga de datos a entorno de R
+
+(Paso previo recomendado:) [Crear un nuevo proyecto de RStudio](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects), crear una carpeta de "datos" dentro de la carpeta del proyecto y reubicar la carpeta de datos descargada dentro de esta nueva carpeta de "datos".
+
+**Datos de incidencia delictiva**
+
+* Cargar conjunto de datos
+```{r}
+dt_incidencia <- fread("../datos/IDEFC_NM_may21.csv")
+
+head(dt_incidencia)
+```
+
+<br/>
+
+**Datos de proyección de población**
+
+* Cargar conjunto de datos
+
+```{r}
+dt_poblacion <- fread("../datos/pob_mit_proyecciones.csv", encoding = "UTF-8")
+
+head(dt_poblacion)
+```
+
+<br/>
+
+### Seleccionar y reformatear columnas relevantes
+
+**Datos de incidencia delictiva**
+```{r message=FALSE, warning=FALSE}
+# Reemplazar espacios en nombres de columnas
+names(dt_incidencia) <- gsub(" ", "_", names(dt_incidencia))
+
+# Filtrar tipo de crimen
+dt_incidencia <- dt_incidencia[Tipo_de_delito == "Violencia familiar", ]
+
+# Convertir a formato largo
+meses <- c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+           "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+setnames(dt_incidencia, old = c("Año", "Entidad"), new = c("anio", "entidad"))
+dt_incidencia <- melt.data.table(dt_incidencia, 
+                                 id.vars = c("anio", "entidad"), 
+                                 measure.vars = meses,
+                                 variable.name = "mes",
+                                 value.name = "incidencia")
+
+# Reformatear columna
+dt_incidencia[, incidencia := gsub(",", "", incidencia)]
+dt_incidencia[, incidencia := as.numeric(incidencia)]
+
+head(dt_incidencia, n = 100)
+```
+
+<br/>
+
+**Datos de proyección de población**
+```{r}
+# Reemplazar espacios en nombres de columnas
+names(dt_poblacion) <- gsub(" ", "_", names(dt_poblacion))
+
+# Filtrar para 2015, 2016, 2017, 2018, 2019 y 2020
+dt_poblacion <- dt_poblacion[ANIO >= 2015 & ANIO <= 2021, ]
+
+# Sumar cifras de todos los segmentos por año
+dt_poblacion <- dt_poblacion[, .(poblacion = sum(POBLACION)), by = .(ANIO, ENTIDAD)]
+dt_poblacion[ENTIDAD == "Quertaro", ENTIDAD := "Querétaro"]
+
+# Renombrar columnas
+setnames(dt_poblacion, old = names(dt_poblacion), new = c("anio", "entidad", "poblacion"))
+
+head(dt_poblacion, n = 100)
+```
+
+<br/>
+
+***
+
+<br/>
+
+### **Análisis de tasa de incididencia de violencia familiar mensual en los últimos años**
+
+* Calcular incidencia de violencia familiar mensual para toda la República mexicana
+
+```{r}
+# Calcular incidencia nacional
+dt_incidencia_nacional <- dt_incidencia[, .(incidencia = sum(incidencia)), by = .(anio, mes)]
+
+# Añadir incidencia nacional a tabla de incidencia por entidad 
+dt_incidencia_nacional[, entidad := "República Mexicana"]
+dt_incidencia <- rbind(dt_incidencia, dt_incidencia_nacional)
+
+head(dt_incidencia, n = 100)
+```
+<br/>
+
+* Unir tablas
+
+```{r}
+# Unir yablad
+dt <- merge(dt_incidencia, dt_poblacion, by=c("anio", "entidad"), all.x = TRUE)
+
+head(dt, n = 100)
+```
+
+```{r}
+# Calcular presuntos delitos de violencia familiar por cada 1000 habitantes
+dt[, tasa_incidencia := incidencia/(poblacion/1000)] 
+
+# Añadir columna de fecha en formato correcto (último día de cada mes)
+dt$fecha <- ymd(paste(dt$anio, dt$mes, 1, sep="-"))+months(1)-days(1)
+```
+
+
+**🔵 Visualización 🔵**
+
+* Generar visualización
+
+```{r}
+# Filter national data and relevant columns
+dt_mx <- dt[entidad == "República Mexicana", .(fecha, tasa_incidencia)]
+
+# Filter out november and december 2020 NA records
+dt_mx <- dt_mx[complete.cases(dt_mx), ]
+
+library(forecast)
+ggseasonplot(ts(dt_mx$tasa_incidencia, c(2015, 1), frequency = 12), year.labels = T, continuous = TRUE) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L)) +
+  labs(title = "Prevalencia de tipo de violencia entre las mujeres de 15 años y más \nvíctimas de violencia en el ámbito familiar en el último año",
+       x = "Tipo de violencia", 
+       y = "Tasa de incidencia por cada 1,000 habitantes",
+       caption = "Fuente de datos: SESNSP y CONAPO") +
+  theme_light() +
+  theme(plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 11.5))
+
+```
+
+Código disponible en: [https://github.com/sarahiaguilar/violencia-intrafamiliar-taller](https://github.com/sarahiaguilar/violencia-intrafamiliar-taller)
